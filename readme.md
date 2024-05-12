@@ -36,7 +36,7 @@
 1. Для исходного кода:
 
 ```bash
-git clone https://github.com/your_username/downloader.git
+git clone https://github.com/Ceowa/python-2ch-app.git
 ```
 ```bash
 pip install -r requirements.txt
