@@ -57,4 +57,15 @@ python ui.py
 
 ## Лицензия
 
-Этот проект лицензирован под MIT License.
+Этот проект лицензирован под `MIT` License.
+
+## Changes
+**version(1.1) 17may 2024**
+* very serious changes in `downloader.py` aimed at speeding up file downloading by `4 times`
+* nice changes in the `interface`
+
+**version(1.0) 12may 2024**
+* changed interface from ``tk`` to ``pyqt``
+* used new method for ``downloading``
+
+
