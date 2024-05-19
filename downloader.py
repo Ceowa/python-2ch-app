@@ -1,8 +1,6 @@
 import os
 import re
 import requests
-import logging
-from concurrent.futures import ThreadPoolExecutor
 from bs4 import BeautifulSoup
 from PyQt5.QtCore import Qt
 
@@ -34,74 +32,64 @@ class Downloader:
         # Download content from each link
         for k, v in links_and_folder_names.items():
             if "2ch" in k:
-                self.download_from_host(self.output_path + v, "2ch", k)
+                self.downloader(self.output_path + v, "2ch", k)
             elif "arhivach" in k:
-                self.download_from_host(self.output_path + v, "arhivach", k)
+                self.downloader(self.output_path + v, "arhivach", k)
 
-    def download_from_host(self, output_path, host_type, url):
+    def downloader(self, output_path, host_type, url):
         try:
             # Get response from the URL
             response = requests.get(url)
-            response.raise_for_status()
 
-            soup = BeautifulSoup(response.content, "html.parser")
+            # Check if the response is successful
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.content, "html.parser")
 
-            # Find links to download
-            links = soup.find_all(
-                "a",
-                href=lambda href: href
-                and (
-                    href.endswith(".jpg")
-                    or href.endswith(".png")
-                    or href.endswith(".gif")
-                    or href.endswith(".mp4")
-                    or href.endswith(".webm")
-                ),
-            )
+                # Find links to download
+                links = soup.find_all(
+                    "a",
+                    href=lambda href: href
+                    and (
+                        href.endswith(".jpg")
+                        or href.endswith(".png")
+                        or href.endswith(".gif")
+                        or href.endswith(".mp4")
+                        or href.endswith(".webm")
+                    ),
+                )
 
-            # Create directory if it does not exist
-            if not os.path.exists(output_path):
-                os.makedirs(output_path)
+                # Create directory if it does not exist
+                if not os.path.exists(output_path):
+                    os.makedirs(output_path)
 
-            total_files = len(links)
-            downloaded_files = 0
+                total_files = len(links)
+                downloaded_files = 0
 
-            # Download each file using ThreadPoolExecutor
-            with ThreadPoolExecutor(max_workers=5) as executor:
+                # Download each file
                 for link in links:
-                    executor.submit(self.download_file, link, output_path, host_type)
+                    link_href = link["href"]
 
-            self.status_label.setText(f"Downloaded all files from {url} successfully!")
-        except requests.exceptions.RequestException as e:
+                    # Construct full URL based on host type
+                    if host_type == "2ch":
+                        path = DVACH + link_href
+                    elif host_type == "arhivach":
+                        if any(extension in link_href for extension in IMAGE_EXT):
+                            path = ARCHIVACH + link_href
+                        elif any(extension in link_href for extension in VIDEO_EXT):
+                            path = link_href
+
+                    # Extract filename from URL
+                    filename = os.path.join(output_path, path.split("/")[-1])
+
+                    # Download and save file
+                    with open(filename, "wb") as file:
+                        file.write(requests.get(path).content)
+
+                    downloaded_files += 1
+                    progress = int(downloaded_files / total_files * 100)
+                    self.progress_bar.setValue(progress)
+                    self.status_label.setText(f"Downloaded {filename} successfully!")
+            else:
+                self.status_label.setText(f"Failed to download from {url}. Status code: {response.status_code}")
+        except Exception as e:
             self.status_label.setText(f"An error occurred: {str(e)}")
-        except Exception as e:
-            self.status_label.setText(f"An unexpected error occurred: {str(e)}")
-
-    def download_file(self, link, output_path, host_type):
-        try:
-            link_href = link["href"]
-
-            # Construct full URL based on host type
-            if host_type == "2ch":
-                path = DVACH + link_href
-            elif host_type == "arhivach":
-                if any(extension in link_href for extension in IMAGE_EXT):
-                    path = ARCHIVACH + link_href
-                elif any(extension in link_href for extension in VIDEO_EXT):
-                    path = link_href
-
-            # Extract filename from URL
-            filename = os.path.join(output_path, os.path.basename(path))
-
-            # Check if file already exists
-            if os.path.exists(filename):
-                logging.info(f"File {filename} already exists. Skipping download.")
-                return
-
-            # Download and save file
-            with open(filename, "wb") as file:
-                file.write(requests.get(path).content)
-
-            logging.info(f"Downloaded {filename} successfully!")
-        except Exception as e:
-            logging.error(f"An error occurred while downloading file {link['href']}: {str(e)}")

@@ -60,6 +60,11 @@ python ui.py
 Этот проект лицензирован под `MIT` License.
 
 ## Changes
+version (2.0)
+- `interface` changes
+- sorting files to `img`/`vid`
+- the `media viewer` has been updated, now viewing the folder in the application is more adequate
+
 **version(1.1) 17may 2024**
 * very serious changes in `downloader.py` aimed at speeding up file downloading by `4 times`
 * nice changes in the `interface`
